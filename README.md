@@ -215,6 +215,10 @@ one kafka broker will be the quorum leader instead
 
 `kafka-server-start.sh kafka_2.12-3.4.0/config/server.properties`
 
+data storage directory can be changed in the either `zookeeper.properties` file or `server.properties` file
+
+e.g. with `dataDir=/your/path` for zookeeper or with `log.dirs=/your/path` for kafka itself
+
 #### CLI
 
 ### Real World
