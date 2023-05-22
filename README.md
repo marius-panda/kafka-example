@@ -207,6 +207,14 @@ one kafka broker will be the quorum leader instead
 
 #### Starting Kafka
 
+- starting zookeeper
+
+`zookeeper-server-start.sh kafka_2.12-3.4.0/config/zookeeper.properties`
+
+- start kafka-server
+
+`kafka-server-start.sh kafka_2.12-3.4.0/config/server.properties`
+
 #### CLI
 
 ### Real World
