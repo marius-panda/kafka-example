@@ -197,9 +197,9 @@ by design operates with an odd number of servers (1,3,5,7, ...)
 
 Zookeeper has a leader, which writes to the rest of the follower-servers (reads)
 
-##### Kafka KRaft
+##### Kafka KRaft (which basically means Kafka w/o Zookeeper)
 
-with Zookeeper there were scaling issues when Kafka clusers had more than 100.000 partitions
+with Zookeeper there were scaling issues when Kafka clusters had more than 100.000 partitions
 
 w/o Zookeeper Kafka can scale to millions of partitions and becomes easier to maintain and set-up
 
@@ -219,7 +219,70 @@ data storage directory can be changed in the either `zookeeper.properties` file 
 
 e.g. with `dataDir=/your/path` for zookeeper or with `log.dirs=/your/path` for kafka itself
 
+#### Starting Kafka w/o Zookeper (but with KRaft)
+
+Kafka KRaft is production ready since 3.3.1
+
+generate cluster ID and format the storage using `kafka-storage.sh`
+
+- `kafka-storage.sh random-uuid`
+
+format the storage directory with the above generated UUID
+
+- kafka-storage.sh format -t <uuid> -c ./kafka_2.12-3.4.0/config/kraft/server.properties
+
 #### CLI
+
+- e.g. using `kafka-topics` with `create`, `delete` or `describe`
+- use the `--bootstrap-server` flag everywhere instead of the `--zookeeper`
+
+##### Connect to a secure kafka-cluster
+
+setup config file e.g. `playground.config`
+
+this config should contain something like
+
+```config
+security.protocol=SASL_SSL
+sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="<your username>" password="<your password>";
+sasl.mechanism=PLAIN
+```
+
+the config should reside where the commands are being run
+
+##### Create a topic
+
+`kafka-topics.sh --bootstrap-server localhost:9092 --topic <topic-name> --create`
+
+- with explicit number of partitions
+
+`kafka-topics.sh --bootstrap-server localhost:9092 --topic <topic-name> --create --partitions 5`
+
+- with replication factor
+
+`kafka-topics.sh --bootstrap-server localhost:9092 --topic <topic-name> --create --partitions 5 --replication-factor 2`
+
+this will result in an error :exclamation:, if there are less brokers than the number of wished replications
+
+##### list topics
+
+`kafka-topics.sh --bootstrap-server localhost:9092 --list`
+
+##### describe topics
+
+`kafka-topics.sh --bootstrap-server localhost:9092 --topic <topic-name> --describe`
+
+```bash
+Topic: first_topic      TopicId: zHBnrnLVTdCYJiqusBzXKA PartitionCount: 1       ReplicationFactor: 1    Configs: segment.bytes=1073741824
+        Topic: first_topic      Partition: 0    Leader: 1       Replicas: 1     Isr: 1
+```
+
+> Isr meaning in-sync-replicas
+> leader meaning which is the broker that has the lead for the mentioned partition
+
+##### delete topics
+
+`kafka-topics.sh --bootstrap-server localhost:9092 --topic <topic-name> --delete`
 
 ### Real World
 
