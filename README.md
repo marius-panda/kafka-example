@@ -231,7 +231,7 @@ format the storage directory with the above generated UUID
 
 - kafka-storage.sh format -t <uuid> -c ./kafka_2.12-3.4.0/config/kraft/server.properties
 
-#### CLI
+#### CLI topics
 
 - e.g. using `kafka-topics` with `create`, `delete` or `describe`
 - use the `--bootstrap-server` flag everywhere instead of the `--zookeeper`
@@ -283,6 +283,77 @@ Topic: first_topic      TopicId: zHBnrnLVTdCYJiqusBzXKA PartitionCount: 1       
 ##### delete topics
 
 `kafka-topics.sh --bootstrap-server localhost:9092 --topic <topic-name> --delete`
+
+#### CLI console producer
+
+##### send data without key to any partition
+
+`kafka-console-producer.sh --bootstrap-server localhost:9092 --topic first_topic`
+
+> Hello World
+> My name is Marius
+> I am learning Kafka
+> ^C (<- Ctrl + C is used to exit the producer)
+
+you can pass properties like the acknowledgement rule
+
+`kafka-console-producer.sh --bootstrap-server localhost:9092 --topic first_topic --producer-property acks=all`
+
+> some message that is acked
+> just for fun
+
+if you want to produce to a non-existent topic you'll get a response like `no_topic=UNKNOWN_TOPIC_OR_PARTITION`
+
+`kafka-console-producer.sh --bootstrap-server localhost:9092 --topic no_topic --producer-property acks=all`
+
+this will then auto-create the topic, which actually was not there
+
+you can actually disable the auto-creation in the used config
+
+##### send data with key to same partition
+
+`kafka-console-producer.sh --bootstrap-server localhost:9092 --topic first_topic --property parse.key=true --property key.separator=:
+`
+
+- with `parse.key=true` you tell the cli that the key should be send, as well
+- with the property `key.separator` you can tell in the message what separates key from value, the example means everything left from the colon will be the key and everything on the right side will be the value
+
+```bash
+>name:marius
+>example key:example value
+```
+
+If you send something without a colon you ll get an exception:
+
+```bash
+>asd
+```
+
+```java
+org.apache.kafka.common.KafkaException: No key separator found on line number 1: 'asd'
+        at kafka.tools.ConsoleProducer$LineMessageReader.parse(ConsoleProducer.scala:381)
+        at kafka.tools.ConsoleProducer$LineMessageReader.readMessage(ConsoleProducer.scala:356)
+        at kafka.tools.ConsoleProducer$.main(ConsoleProducer.scala:50)
+        at kafka.tools.ConsoleProducer.main(ConsoleProducer.scala)
+```
+
+#### CLI console consumer
+
+##### consuming from the tail of the topic
+
+`kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic third_topic`
+
+on another shell-session you can now start produce into the above consumed topic
+
+`kafka-console-producer.sh --bootstrap-server localhost:9092 --topic third_topic --producer-property partitioner.class=ord.apache.kafka.clients.producer.RoundRobinPartitioner`
+
+> `--producer-property partitioner.class=ord.apache.kafka.clients.producer.RoundRobinPartitioner` should not be used in production, just for learning purposes to produce at one partition at a time
+
+there are optimizations within Kafka that you can send up to 16kb to one partition before you switch to another partition
+
+##### consuming from the beginning of the topic
+
+##### show both key and values in the output
 
 ### Real World
 
