@@ -284,7 +284,7 @@ Topic: first_topic      TopicId: zHBnrnLVTdCYJiqusBzXKA PartitionCount: 1       
 
 `kafka-topics.sh --bootstrap-server localhost:9092 --topic <topic-name> --delete`
 
-#### CLI console producer
+#### CLI producer
 
 ##### send data without key to any partition
 
@@ -337,7 +337,7 @@ org.apache.kafka.common.KafkaException: No key separator found on line number 1:
         at kafka.tools.ConsoleProducer.main(ConsoleProducer.scala)
 ```
 
-#### CLI console consumer
+#### CLI consumer
 
 ##### consuming from the tail of the topic
 
@@ -351,9 +351,85 @@ on another shell-session you can now start produce into the above consumed topic
 
 there are optimizations within Kafka that you can send up to 16kb to one partition before you switch to another partition
 
+if you have multiple partitions then you might see the messages in a different order than as you send them, since the order just exists within a partition AND when sending messages to a topic, it will shift them into different partitions according to the chosen partitioner-class
+
 ##### consuming from the beginning of the topic
 
+you can add a flag then every message from the beginning on will be shown
+
+`--from-beginning`
+
 ##### show both key and values in the output
+
+```bash
+kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic <topic-name> --formatter kafka.tools.DefaultMessageFormatter --property print.timestamp=true --property print.key=true --property print.value=true --property print.partition=true --from-beginning
+```
+
+#### CLI consumer groups
+
+- recap: consumers can be part of the same consumer-group
+- then each partition of a topic can be just consumed by one distinct consumer within the same consumer-group
+
+> consume with the property --group
+
+```bash
+kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic third_topic --formatter kafka.tools.DefaultMessageFormatter --property print.timestamp=true --property print.key=true --property print.value=true --property print.partition=true --group my-first-application
+```
+
+list all the consumer groups
+
+```bash
+kafka-consumer-groups.sh --bootstrap-server localhost:9092 --list
+```
+
+```bash
+kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group my-first-application
+```
+
+describing a consumer group
+
+if messages were produced but not yet consumed it will create a lag respectively the log-end-offset will be higher than the current-offset of one partition
+
+```bash
+Consumer group 'my-first-application' has no active members.
+
+GROUP                TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID
+my-first-application five-partition-topic 3          5               5               0               -               -               -
+my-first-application five-partition-topic 1          6               6               0               -               -               -
+my-first-application five-partition-topic 0          6               6               0               -               -               -
+my-first-application five-partition-topic 2          6               6               0               -               -               -
+my-first-application five-partition-topic 4          11              11              0               -               -               -
+```
+
+> resetting the offsets of a consumer group to read all the messages
+
+the following will only show what would happen in a dry-run
+
+```bash
+kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group my-first-application --reset-offsets --to-earliest --topic third_topic --dry-run
+```
+
+this command will execute the reset of the offset
+
+```bash
+kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group my-first-application --reset-offsets --to-earliest --topic third_topic --execute
+```
+
+then new consumers will consider the new offset and read all the messages respectively the messages from the offset where it has been reset to (respectively to the strategy)
+
+strategies:
+
+- `--to-earliest`
+- `--to-datetime`
+- `--by-duration`
+- `--to-earliest`,
+- `--to-latest`
+- `--shift-by`
+- `--from-file`
+- `--to-current`
+- `--to-offset`
+
+:exclamation: the consumer must not be running during the reset
 
 ### Real World
 
